@@ -196,27 +196,96 @@
       // --- Compose from jamo stream (for virtual keyboard)
       function composeFromJamoStream(stream){
         const out=[]; let l=null,v=null,t=null;
-        const flush=()=>{ if(l&&v){ const li=L_LIST.indexOf(l),vi=V_LIST.indexOf(v),ti=t?T_LIST.indexOf(t):0; if(li>=0&&vi>=0&&ti>=0){ out.push(String.fromCodePoint(S_BASE + (li*N_COUNT) + (vi*T_COUNT) + ti)); } else { if(l)out.push(l); if(v)out.push(v); if(t)out.push(t); } } else { if(l)out.push(l); if(v)out.push(v); if(t)out.push(t);} l=v=t=null; };
+
+        // Push current buffered syllable if any
+        const pushCurrent=()=>{
+          if(l && v){
+            const li=L_LIST.indexOf(l), vi=V_LIST.indexOf(v), ti=t?T_LIST.indexOf(t):0;
+            if(li>=0 && vi>=0 && ti>=0){
+              out.push(String.fromCodePoint(S_BASE + (li*N_COUNT) + (vi*T_COUNT) + ti));
+            }else{
+              if(l) out.push(l); if(v) out.push(v); if(t) out.push(t);
+            }
+          }else{
+            if(l) out.push(l); if(v) out.push(v); if(t) out.push(t);
+          }
+          l=v=t=null;
+        };
+
         const chars = Array.from(stream);
         for(let i=0;i<chars.length;i++){
-          const ch=chars[i]; const isV = V_LIST.includes(ch); const isL = L_LIST.includes(ch); const isT = T_LIST.includes(ch) && ch!=="";
+          const ch=chars[i];
+          const isV = V_LIST.includes(ch);
+          const isL = L_LIST.includes(ch);
+          const isT = T_LIST.includes(ch) && ch!=="";
+
           if(isV){
-            if(!l&&!v&&!t){ l="ㅇ"; v=ch; continue; }
-            if(l&&v&&!t){ const merged=V_COMBINE[v+ch]; if(merged){ v=merged; continue; } flush(); l="ㅇ"; v=ch; t=null; continue; }
-            if(l&&v&&t){ const split=T_SPLIT[t]; flush(); if(split){ l=split[1]; v=ch; t=null; } else { l=t; v=ch; t=null; } continue; }
-            if(l&&!v&&!t){ v=ch; continue; }
-            flush(); l="ㅇ"; v=ch; t=null; continue;
+            // Start of syllable with vowel -> implicit ㅇ
+            if(!l && !v && !t){ l="ㅇ"; v=ch; continue; }
+
+            // We have onset only -> set nucleus
+            if(l && !v && !t){ v=ch; continue; }
+
+            // We have onset+nucleus, no final -> try to merge diphthong; otherwise start new syllable
+            if(l && v && !t){
+              const merged = V_COMBINE[v+ch];
+              if(merged){ v=merged; continue; }
+              pushCurrent(); l="ㅇ"; v=ch; t=null; continue;
+            }
+
+            // We have full syllable (l,v,t) and a vowel arrives:
+            // move the last consonant to the next syllable's onset.
+            if(l && v && t){
+              const split = T_SPLIT[t];
+              if(split){
+                // Keep first part as final; carry second to next onset
+                const keep = split[0], carry = split[1];
+                // push previous syllable with adjusted final
+                const li=L_LIST.indexOf(l), vi=V_LIST.indexOf(v), ti=keep?T_LIST.indexOf(keep):0;
+                if(li>=0 && vi>=0 && ti>=0){
+                  out.push(String.fromCodePoint(S_BASE + (li*N_COUNT) + (vi*T_COUNT) + ti));
+                }else{
+                  out.push(l, v); if(keep) out.push(keep);
+                }
+                // start new syllable with carried onset
+                l=carry; v=ch; t=null; continue;
+              }else{
+                // Single final: previous syllable loses its final, which becomes the next onset
+                const li=L_LIST.indexOf(l), vi=V_LIST.indexOf(v);
+                if(li>=0 && vi>=0){
+                  out.push(String.fromCodePoint(S_BASE + (li*N_COUNT) + (vi*T_COUNT)));
+                }else{
+                  out.push(l, v);
+                }
+                l=t; v=ch; t=null; continue;
+              }
+            }
+
+            // fallback
+            pushCurrent(); out.push(ch); continue;
           }
-          if(isL||isT){
-            if(!l&&!v&&!t){ l=ch; continue; }
-            if(l&&!v&&!t){ out.push(l); l=ch; continue; }
-            if(l&&v&&!t){ if(!T_LIST.includes(ch) || T_LIST.indexOf(ch)<=0){ flush(); l=ch; continue; } t=ch; continue; }
-            if(l&&v&&t){ const merged=T_COMBINE[t+ch]; if(merged){ t=merged; continue; } flush(); l=ch; continue; }
-            flush(); l=ch; continue;
+
+          if(isL || isT){
+            if(!l && !v && !t){ l=ch; continue; }
+            if(l && !v && !t){ out.push(l); l=ch; continue; }
+            if(l && v && !t){
+              // treat as final if valid final (index > 0), else flush and start new syllable
+              if(!T_LIST.includes(ch) || T_LIST.indexOf(ch)<=0){ pushCurrent(); l=ch; continue; }
+              t=ch; continue;
+            }
+            if(l && v && t){
+              const merged = T_COMBINE[t+ch];
+              if(merged){ t=merged; continue; }
+              pushCurrent(); l=ch; continue;
+            }
+            pushCurrent(); l=ch; continue;
           }
-          flush(); out.push(ch);
+
+          // Other characters (space, punctuation, newline, etc.)
+          pushCurrent(); out.push(ch);
         }
-        flush(); return out.join("");
+        pushCurrent();
+        return out.join("");
       }
 
       // --- Sino-Korean number reading (hangul)

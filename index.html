@@ -181,9 +181,6 @@
       const V_COMBINE={"ㅗㅏ":"ㅘ","ㅗㅐ":"ㅙ","ㅗㅣ":"ㅚ","ㅜㅓ":"ㅝ","ㅜㅐ":"ㅞ","ㅜㅣ":"ㅟ","ㅡㅣ":"ㅢ"};
       const T_COMBINE={"ㄱㅅ":"ㄳ","ㄴㅈ":"ㄵ","ㄴㅎ":"ㄶ","ㄹㄱ":"ㄺ","ㄹㅁ":"ㄻ","ㄹㅂ":"ㄼ","ㄹㅅ":"ㄽ","ㄹㅌ":"ㄾ","ㄹㅍ":"ㄿ","ㄹㅎ":"ㅀ","ㅂㅅ":"ㅄ"};
       const T_SPLIT={"ㄳ":["ㄱ","ㅅ"],"ㄵ":["ㄴ","ㅈ"],"ㄶ":["ㄴ","ㅎ"],"ㄺ":["ㄹ","ㄱ"],"ㄻ":["ㄹ","ㅁ"],"ㄼ":["ㄹ","ㅂ"],"ㄽ":["ㄹ","ㅅ"],"ㄾ":["ㄹ","ㅌ"],"ㄿ":["ㄹ","ㅍ"],"ㅀ":["ㄹ","ㅎ"],"ㅄ":["ㅂ","ㅅ"]};
-      // keyboard render
-      const KeyboardLayouts = Keyboard;
-      const DiffUtil = Diff;
 
       function isHangulSyllable(ch){ const cp=ch.codePointAt(0); return cp>=0xAC00 && cp<=0xD7A3; }
 
@@ -468,12 +465,13 @@
     el.mode123.addEventListener('click', ()=>setMode('num'));
     function setMode(mode){ kbMode=mode; el.modeHangul.setAttribute('aria-pressed', mode==='hangul'); el.modeABC.setAttribute('aria-pressed', mode==='abc'); el.mode123.setAttribute('aria-pressed', mode==='num'); renderKeyboard(); }
 
+    // keyboard render
     function renderKeyboard(){
       const rows=[el.row1,el.row2,el.row3]; rows.forEach(r=>r.innerHTML='');
       let layout;
-      if(kbMode==='hangul') layout = KeyboardLayouts.ROWS;
-      else if(kbMode==='abc') layout = KeyboardLayouts.ABC_ROWS;
-      else layout = KeyboardLayouts.NUM_ROWS;
+      if(kbMode==='hangul') layout = Keyboard.ROWS;
+      else if(kbMode==='abc') layout = Keyboard.ABC_ROWS;
+      else layout = Keyboard.NUM_ROWS;
       layout.forEach((rowKeys, ri)=>{
         rowKeys.forEach(k=>{
           const btn=document.createElement('button'); btn.className='kbd'; btn.type='button';
@@ -482,7 +480,7 @@
           const sub=document.createElement('div'); sub.className='sub';
           if(k==='⌫'||k==='⎵'||k==='↵'){ main.textContent=k; }
           else if(kbMode==='hangul'){
-            const lower=k.toLowerCase(); const base=KeyboardLayouts.BASE[lower]; const sh=KeyboardLayouts.SHIFT[lower]; main.textContent=(shiftOn && sh)? sh: base; sub.textContent=k;
+            const lower=k.toLowerCase(); const base=Keyboard.BASE[lower]; const sh=Keyboard.SHIFT[lower]; main.textContent=(shiftOn && sh)? sh: base; sub.textContent=k;
           } else if(kbMode==='abc'){
             main.textContent = shiftOn? k.toUpperCase() : k.toLowerCase(); sub.textContent=k;
           } else { main.textContent = k; }
@@ -496,7 +494,7 @@
       if(k==='⎵'){ if(kbMode==='hangul'){ jamoBuffer+=' '; el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); } else { el.manualText.value += ' '; } renderAllRubies(); renderDiff(); return; }
       if(k==='↵'){ if(kbMode==='hangul'){ jamoBuffer+='\n'; el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); } else { el.manualText.value += '\n'; } renderAllRubies(); renderDiff(); return; }
       if(kbMode==='hangul'){
-        const lower=k.toLowerCase(); const base=KeyboardLayouts.BASE[lower]; const sh=KeyboardLayouts.SHIFT[lower]; const jamo=(shiftOn&&sh)? sh: base; if(jamo){ jamoBuffer+=jamo; el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); }
+        const lower=k.toLowerCase(); const base=Keyboard.BASE[lower]; const sh=Keyboard.SHIFT[lower]; const jamo=(shiftOn&&sh)? sh: base; if(jamo){ jamoBuffer+=jamo; el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); }
       } else if(kbMode==='abc'){
         const ch = shiftOn? k.toUpperCase() : k.toLowerCase(); el.manualText.value += ch;
       } else { el.manualText.value += k; }
@@ -514,7 +512,7 @@
     // diff render
     function renderDiff(){
       const compareTarget = (el.translatedText.value && el.translatedText.value.trim().length>0) ? el.translatedText.value : el.sourceText.value;
-      const res = DiffUtil.diff(compareTarget, getManualText());
+      const res = Diff.diff(compareTarget, getManualText());
       el.diffOut.innerHTML=''; res.nodes.forEach(n=>el.diffOut.appendChild(n));
       if(res.firstErrorIndex!==null){ el.firstError.className='small danger'; el.firstError.textContent='最初の誤り位置：'+(res.firstErrorIndex+1)+' 文字目'; }
       else { el.firstError.className='small success'; el.firstError.textContent='すべて一致しています 🎉'; }

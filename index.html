@@ -27,7 +27,7 @@
     .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:#fff}
     .ruby{padding:10px;border-radius:12px;background:#f7fafc;line-height:2;font-size:18px;word-break:break-word}
     .diff{padding:10px;border-radius:12px;background:#f7fafc;line-height:2;font-size:18px;word-break:break-word;min-height:72px;border:1px dashed var(--border)}
-    .ok{background:var(--ok)} .ng{background:var(--ng)} .warn{background:var(--warn)} .strike{text-decoration:line-through;opacity:.7}
+    .ng{color:#ef4444}
     .danger{color:#b91c1c}
     .success{color:#0f766e}
     .right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -453,14 +453,21 @@
      */
     const Diff = (() => {
       function diff(a,b){
-        const A=(a||"").normalize("NFC"); const B=(b||"").normalize("NFC");
-        const max=Math.max(A.length,B.length); const nodes=[]; let firstError=null;
-        for(let i=0;i<max;i++){
-          const ca=A[i], cb=B[i]; const span=document.createElement('span');
-          if(ca===cb){ span.className='ok'; span.textContent=cb||''; }
-          else { if(firstError===null) firstError=i; if(cb===undefined){ span.className='ng strike'; span.textContent=ca; } else if(ca===undefined){ span.className='warn'; span.textContent=cb; } else { span.className='warn'; span.style.textDecoration='underline'; span.style.textDecorationColor='#ef4444'; span.textContent=cb; } }
+        const A=(a||"").normalize("NFC");
+        const B=(b||"").normalize("NFC");
+        const nodes=[]; let firstError=null;
+        for(let i=0;i<A.length;i++){
+          const ca=A[i];
+          const cb=B[i];
+          const span=document.createElement('span');
+          span.textContent=ca||'';
+          if(ca!==cb){
+            if(firstError===null) firstError=i;
+            span.className='ng';
+          }
           nodes.push(span);
         }
+        if(firstError===null && B.length>A.length){ firstError=A.length; }
         return {nodes, firstErrorIndex:firstError};
       }
       return { diff };

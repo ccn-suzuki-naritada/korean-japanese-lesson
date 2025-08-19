@@ -181,6 +181,9 @@
       const V_COMBINE={"ㅗㅏ":"ㅘ","ㅗㅐ":"ㅙ","ㅗㅣ":"ㅚ","ㅜㅓ":"ㅝ","ㅜㅐ":"ㅞ","ㅜㅣ":"ㅟ","ㅡㅣ":"ㅢ"};
       const T_COMBINE={"ㄱㅅ":"ㄳ","ㄴㅈ":"ㄵ","ㄴㅎ":"ㄶ","ㄹㄱ":"ㄺ","ㄹㅁ":"ㄻ","ㄹㅂ":"ㄼ","ㄹㅅ":"ㄽ","ㄹㅌ":"ㄾ","ㄹㅍ":"ㄿ","ㄹㅎ":"ㅀ","ㅂㅅ":"ㅄ"};
       const T_SPLIT={"ㄳ":["ㄱ","ㅅ"],"ㄵ":["ㄴ","ㅈ"],"ㄶ":["ㄴ","ㅎ"],"ㄺ":["ㄹ","ㄱ"],"ㄻ":["ㄹ","ㅁ"],"ㄼ":["ㄹ","ㅂ"],"ㄽ":["ㄹ","ㅅ"],"ㄾ":["ㄹ","ㅌ"],"ㄿ":["ㄹ","ㅍ"],"ㅀ":["ㄹ","ㅎ"],"ㅄ":["ㅂ","ㅅ"]};
+      // keyboard render
+      const KeyboardLayouts = Keyboard;
+      const DiffUtil = Diff;
 
       function isHangulSyllable(ch){ const cp=ch.codePointAt(0); return cp>=0xAC00 && cp<=0xD7A3; }
 
@@ -465,8 +468,6 @@
     el.mode123.addEventListener('click', ()=>setMode('num'));
     function setMode(mode){ kbMode=mode; el.modeHangul.setAttribute('aria-pressed', mode==='hangul'); el.modeABC.setAttribute('aria-pressed', mode==='abc'); el.mode123.setAttribute('aria-pressed', mode==='num'); renderKeyboard(); }
 
-    // keyboard render
-    const KeyboardLayouts = Keyboard;
     function renderKeyboard(){
       const rows=[el.row1,el.row2,el.row3]; rows.forEach(r=>r.innerHTML='');
       let layout;
@@ -511,7 +512,6 @@
     function getManualText(){ return el.useVirtualKeyboard.checked ? el.manualText.value : el.manualText.value; }
 
     // diff render
-    const DiffUtil = Diff;
     function renderDiff(){
       const compareTarget = (el.translatedText.value && el.translatedText.value.trim().length>0) ? el.translatedText.value : el.sourceText.value;
       const res = DiffUtil.diff(compareTarget, getManualText());

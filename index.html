@@ -125,7 +125,6 @@
       </div>
       <div class="card stack">
         <h2>原文／翻訳 と 手入力 の比較</h2>
-        <div class="small muted">比較対象は「翻訳結果」があれば優先、なければ「原文」です。</div>
         <div id="diffOut" class="diff"></div>
         <div id="firstError" class="small"></div>
         <div class="right">
@@ -511,7 +510,7 @@
 
     // diff render
     function renderDiff(){
-      const compareTarget = (el.translatedText.value && el.translatedText.value.trim().length>0) ? el.translatedText.value : el.sourceText.value;
+      const compareTarget = el.sourceText.value;
       const res = Diff.diff(compareTarget, getManualText());
       el.diffOut.innerHTML=''; res.nodes.forEach(n=>el.diffOut.appendChild(n));
       if(res.firstErrorIndex!==null){ el.firstError.className='small danger'; el.firstError.textContent='最初の誤り位置：'+(res.firstErrorIndex+1)+' 文字目'; }

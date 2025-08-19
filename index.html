@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>韓国語学習ページ（HTML+JS｜カタカナルビ対応）</title>
+  <style>
+    :root{--bg:#f7f7fb;--card:#fff;--ink:#111;--muted:#6b7280;--border:#e5e7eb;--ok:#def7e5;--ng:#fde2e2;--warn:#fff2cc}
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(#fff,#f3f4f6);color:var(--ink);font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px 16px 56px}
+    h1{font-size:clamp(20px,3.8vw,28px);margin:0 0 6px}
+    h2{font-size:18px;margin:0 0 8px}
+    .muted{color:var(--muted)}
+    .row{display:grid;gap:16px}
+    @media(min-width:960px){.row{grid-template-columns:1fr 1fr}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:0 1px 8px rgba(0,0,0,.04)}
+    textarea{width:100%;min-height:160px;resize:vertical;border:1px solid var(--border);border-radius:12px;padding:10px;font-size:15px;line-height:1.5}
+    select,input[type="text"],input[type="url"],input[type="email"]{border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:14px}
+    .btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:999px;background:#fff;padding:8px 12px;cursor:pointer}
+    .btn[disabled]{opacity:.6;cursor:not-allowed}
+    .kbd{min-width:36px;height:44px;border:1px solid var(--border);background:#fff;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+    .kbd .main{font-size:18px;line-height:18px}
+    .kbd .sub{font-size:10px;color:var(--muted);line-height:10px}
+    .keys{display:flex;gap:6px;justify-content:center}
+    .stack{display:flex;flex-direction:column;gap:6px}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:#fff}
+    .ruby{padding:10px;border-radius:12px;background:#f7fafc;line-height:2;font-size:18px;word-break:break-word}
+    .diff{padding:10px;border-radius:12px;background:#f7fafc;line-height:2;font-size:18px;word-break:break-word;min-height:72px;border:1px dashed var(--border)}
+    .ok{background:var(--ok)} .ng{background:var(--ng)} .warn{background:var(--warn)} .strike{text-decoration:line-through;opacity:.7}
+    .danger{color:#b91c1c}
+    .success{color:#0f766e}
+    .right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .seg{display:inline-flex;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .seg button{padding:6px 10px;border:0;background:#fff}
+    .seg button[aria-pressed="true"]{background:#111;color:#fff}
+    .small{font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="right" style="justify-content:space-between;align-items:flex-end;margin-bottom:12px">
+      <div>
+        <h1>韓国語学習ページ（HTML + JS / 1ファイル）</h1>
+        <div class="muted small">ルビは <b>カタカナ表記</b>。数字は可能なら <b>漢数詞（韓国語の読み）</b>でルビ化します。</div>
+      </div>
+      <div class="right">
+        <button class="btn" id="copyPageUrlBtn">このページのURLをコピー</button>
+      </div>
+    </header>
+
+    <!-- 翻訳 UI -->
+    <section class="row">
+      <div class="card stack">
+        <div class="right">
+          <h2 style="margin-right:auto">原文入力</h2>
+          <div class="right">
+            <label class="pill">From
+              <select id="sourceLang">
+                <option value="auto">自動</option>
+                <option value="ja">日本語</option>
+                <option value="ko">韓国語</option>
+                <option value="en">英語</option>
+                <option value="zh">中国語</option>
+                <option value="de">ドイツ語</option>
+                <option value="fr">フランス語</option>
+                <option value="es">スペイン語</option>
+              </select>
+            </label>
+            <span class="muted">→</span>
+            <label class="pill">To
+              <select id="targetLang">
+                <option value="ja">日本語</option>
+                <option value="ko">韓国語</option>
+                <option value="en">英語</option>
+                <option value="zh">中国語</option>
+                <option value="de">ドイツ語</option>
+                <option value="fr">フランス語</option>
+                <option value="es">スペイン語</option>
+              </select>
+            </label>
+            <button class="btn" id="translateBtn">翻訳</button>
+          </div>
+        </div>
+        <textarea id="sourceText" placeholder="ここに原文を入力"></textarea>
+        <div class="small muted">自動ルビ（カタカナ）：</div>
+        <div id="rubySource" class="ruby"></div>
+      </div>
+      <div class="card stack">
+        <h2>翻訳結果</h2>
+        <textarea id="translatedText" placeholder="翻訳結果がここに表示されます"></textarea>
+        <div class="small muted">自動ルビ（カタカナ）：</div>
+        <div id="rubyTranslated" class="ruby"></div>
+      </div>
+    </section>
+
+    <!-- 手入力 & キーボード -->
+    <section class="row" style="margin-top:16px">
+      <div class="card stack">
+        <div class="right" style="justify-content:space-between">
+          <h2>韓国語の手入力</h2>
+          <label class="right small"><input type="checkbox" id="useVirtualKeyboard" checked> 仮想キーボードを使う</label>
+        </div>
+        <textarea id="manualText" placeholder="ここに手入力" readonly></textarea>
+        <div class="small muted">自動ルビ（カタカナ）：</div>
+        <div id="rubyManual" class="ruby"></div>
+        <div id="keyboard" class="stack" style="margin-top:6px">
+          <div class="right" style="justify-content:space-between">
+            <div class="small muted">入力モード</div>
+            <div class="right">
+              <div class="seg" role="tablist" aria-label="keyboard-mode">
+                <button id="modeHangul" aria-pressed="true">한글</button>
+                <button id="modeABC" aria-pressed="false">ABC</button>
+                <button id="mode123" aria-pressed="false">123</button>
+              </div>
+              <button class="btn" id="shiftBtn">Shift</button>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="keys" id="row1"></div>
+            <div class="keys" id="row2"></div>
+            <div class="keys" id="row3"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card stack">
+        <h2>原文／翻訳 と 手入力 の比較</h2>
+        <div class="small muted">比較対象は「翻訳結果」があれば優先、なければ「原文」です。</div>
+        <div id="diffOut" class="diff"></div>
+        <div id="firstError" class="small"></div>
+        <div class="right">
+          <button class="btn" id="clearManual">手入力をクリア</button>
+          <button class="btn" id="copyManual">手入力をコピー</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 翻訳APIの選択（無料系） -->
+    <section class="card stack" style="margin-top:16px">
+      <h2>翻訳APIの選択</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <label class="pill">Provider
+          <select id="provider">
+            <option value="libre">LibreTranslate</option>
+            <option value="mymemory">MyMemory</option>
+          </select>
+        </label>
+        <div></div>
+      </div>
+      <div id="cfg-libre" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <label>LibreTranslate Base URL
+          <input id="libreBase" type="url" placeholder="https://libretranslate.com" value="https://libretranslate.com"/>
+        </label>
+        <label>API Key（任意／必要なインスタンスのみ）
+          <input id="libreKey" type="text" placeholder="空でOK（自己ホストや鍵不要のミラー）" />
+        </label>
+      </div>
+      <div id="cfg-mymemory" style="display:none;grid-template-columns:1fr 1fr;gap:8px">
+        <label>Contact Email（任意 / de パラメータ）
+          <input id="mmEmail" type="email" placeholder="user@example.com（高頻度利用時に推奨）" />
+        </label>
+        <div></div>
+      </div>
+      <div class="small muted">※ 無料APIはレート制限や品質のばらつきがあります。安定運用は LibreTranslate の<strong>自己ホスト</strong>がおすすめです。</div>
+    </section>
+  </div>
+
+  <script>
+    /**
+     * =============================================
+     * Hangul Core: decompose/compose + Katakana RT
+     * =============================================
+     */
+    const Hangul = (() => {
+      // --- Unicode indices
+      const S_BASE=0xAC00, L_BASE=0x1100, V_BASE=0x1161, T_BASE=0x11A7;
+      const L_COUNT=19, V_COUNT=21, T_COUNT=28, N_COUNT=V_COUNT*T_COUNT;
+      const L_LIST=["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+      const V_LIST=["ㅏ","ㅐ","ㅑ","ㅒ","ㅓ","ㅔ","ㅕ","ㅖ","ㅗ","ㅘ","ㅙ","ㅚ","ㅛ","ㅜ","ㅝ","ㅞ","ㅟ","ㅠ","ㅡ","ㅢ","ㅣ"];
+      const T_LIST=["","ㄱ","ㄲ","ㄳ","ㄴ","ㄵ","ㄶ","ㄷ","ㄹ","ㄺ","ㄻ","ㄼ","ㄽ","ㄾ","ㄿ","ㅀ","ㅁ","ㅂ","ㅄ","ㅅ","ㅆ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+      const V_COMBINE={"ㅗㅏ":"ㅘ","ㅗㅐ":"ㅙ","ㅗㅣ":"ㅚ","ㅜㅓ":"ㅝ","ㅜㅐ":"ㅞ","ㅜㅣ":"ㅟ","ㅡㅣ":"ㅢ"};
+      const T_COMBINE={"ㄱㅅ":"ㄳ","ㄴㅈ":"ㄵ","ㄴㅎ":"ㄶ","ㄹㄱ":"ㄺ","ㄹㅁ":"ㄻ","ㄹㅂ":"ㄼ","ㄹㅅ":"ㄽ","ㄹㅌ":"ㄾ","ㄹㅍ":"ㄿ","ㄹㅎ":"ㅀ","ㅂㅅ":"ㅄ"};
+      const T_SPLIT={"ㄳ":["ㄱ","ㅅ"],"ㄵ":["ㄴ","ㅈ"],"ㄶ":["ㄴ","ㅎ"],"ㄺ":["ㄹ","ㄱ"],"ㄻ":["ㄹ","ㅁ"],"ㄼ":["ㄹ","ㅂ"],"ㄽ":["ㄹ","ㅅ"],"ㄾ":["ㄹ","ㅌ"],"ㄿ":["ㄹ","ㅍ"],"ㅀ":["ㄹ","ㅎ"],"ㅄ":["ㅂ","ㅅ"]};
+
+      function isHangulSyllable(ch){ const cp=ch.codePointAt(0); return cp>=0xAC00 && cp<=0xD7A3; }
+
+      function decomposeSyllableToJamo(syll){
+        if(!isHangulSyllable(syll)) return [syll];
+        const sIndex = syll.codePointAt(0) - S_BASE;
+        const lIndex = Math.floor(sIndex / N_COUNT);
+        const vIndex = Math.floor((sIndex % N_COUNT) / T_COUNT);
+        const tIndex = sIndex % T_COUNT;
+        const arr=[L_LIST[lIndex], V_LIST[vIndex]]; if(tIndex>0) arr.push(T_LIST[tIndex]);
+        return arr;
+      }
+
+      // --- Compose from jamo stream (for virtual keyboard)
+      function composeFromJamoStream(stream){
+        const out=[]; let l=null,v=null,t=null;
+        const flush=()=>{ if(l&&v){ const li=L_LIST.indexOf(l),vi=V_LIST.indexOf(v),ti=t?T_LIST.indexOf(t):0; if(li>=0&&vi>=0&&ti>=0){ out.push(String.fromCodePoint(S_BASE + (li*N_COUNT) + (vi*T_COUNT) + ti)); } else { if(l)out.push(l); if(v)out.push(v); if(t)out.push(t); } } else { if(l)out.push(l); if(v)out.push(v); if(t)out.push(t);} l=v=t=null; };
+        const chars = Array.from(stream);
+        for(let i=0;i<chars.length;i++){
+          const ch=chars[i]; const isV = V_LIST.includes(ch); const isL = L_LIST.includes(ch); const isT = T_LIST.includes(ch) && ch!=="";
+          if(isV){
+            if(!l&&!v&&!t){ l="ㅇ"; v=ch; continue; }
+            if(l&&v&&!t){ const merged=V_COMBINE[v+ch]; if(merged){ v=merged; continue; } flush(); l="ㅇ"; v=ch; t=null; continue; }
+            if(l&&v&&t){ const split=T_SPLIT[t]; flush(); if(split){ l=split[1]; v=ch; t=null; } else { l=t; v=ch; t=null; } continue; }
+            if(l&&!v&&!t){ v=ch; continue; }
+            flush(); l="ㅇ"; v=ch; t=null; continue;
+          }
+          if(isL||isT){
+            if(!l&&!v&&!t){ l=ch; continue; }
+            if(l&&!v&&!t){ out.push(l); l=ch; continue; }
+            if(l&&v&&!t){ if(!T_LIST.includes(ch) || T_LIST.indexOf(ch)<=0){ flush(); l=ch; continue; } t=ch; continue; }
+            if(l&&v&&t){ const merged=T_COMBINE[t+ch]; if(merged){ t=merged; continue; } flush(); l=ch; continue; }
+            flush(); l=ch; continue;
+          }
+          flush(); out.push(ch);
+        }
+        flush(); return out.join("");
+      }
+
+      // --- Sino-Korean number reading (hangul)
+      const DIGITS=['영','일','이','삼','사','오','육','칠','팔','구'];
+      const SMALL_UNITS=['','십','백','천'];
+      const BIG_UNITS=['','만','억','조','경'];
+      function stripLeadingZeros(numStr){ let i=0; while(i<numStr.length-1 && numStr[i]==='0'){ i++; } return numStr.slice(i); }
+      function numberToHangulSino(nStr){
+        const cleaned = stripLeadingZeros(nStr);
+        if(cleaned==='' || /^0+$/.test(nStr)) return '영';
+        const rev = cleaned.split('').reverse();
+        const out=[];
+        for(let block=0; block*4<rev.length; block++){
+          const chunk = rev.slice(block*4, block*4+4);
+          let chunkStr='';
+          for(let i=chunk.length-1;i>=0;i--){
+            const d = parseInt(chunk[i],10);
+            if(d===0) continue;
+            const unit = SMALL_UNITS[i];
+            const digitStr = (unit && d===1) ? '' : DIGITS[d];
+            chunkStr += digitStr + unit;
+          }
+          if(chunkStr){ chunkStr += BIG_UNITS[block]; out.unshift(chunkStr); }
+        }
+        return out.join('');
+      }
+
+      // --- Hangul -> Katakana (simplified)
+      const ROW = {
+        'ㄱ':{base:'g', gem:false}, 'ㅋ':{base:'k', gem:false}, 'ㄲ':{base:'k', gem:true},
+        'ㄴ':{base:'n', gem:false}, 'ㄷ':{base:'d', gem:false}, 'ㅌ':{base:'t', gem:false}, 'ㄸ':{base:'t', gem:true},
+        'ㄹ':{base:'r', gem:false}, 'ㅁ':{base:'m', gem:false}, 'ㅂ':{base:'b', gem:false}, 'ㅍ':{base:'p', gem:false}, 'ㅃ':{base:'p', gem:true},
+        'ㅅ':{base:'s', gem:false}, 'ㅆ':{base:'s', gem:true}, 'ㅇ':{base:'v', gem:false},
+        'ㅈ':{base:'j', gem:false}, 'ㅊ':{base:'ch',gem:false}, 'ㅉ':{base:'j', gem:true}, 'ㅎ':{base:'h', gem:false},
+      };
+      function cvToKana(base, v){
+        const V2 = {
+          'ㅏ':{kana:{g:'ガ',k:'カ',n:'ナ',d:'ダ',t:'タ',r:'ラ',m:'マ',b:'バ',p:'パ',s:'サ',j:'ジャ',ch:'チャ',h:'ハ',v:'ア'}},
+          'ㅐ':{kana:{g:'ゲ',k:'ケ',n:'ネ',d:'デ',t:'テ',r:'レ',m:'メ',b:'ベ',p:'ペ',s:'セ',j:'ジェ',ch:'チェ',h:'ヘ',v:'エ'}},
+          'ㅑ':{kana:{g:'ギャ',k:'キャ',n:'ニャ',d:'ジャ',t:'チャ',r:'リャ',m:'ミャ',b:'ビャ',p:'ピャ',s:'シャ',j:'ジャ',ch:'チャ',h:'ヒャ',v:'ヤ'}},
+          'ㅒ':{kana:{g:'ギェ',k:'キェ',n:'ニェ',d:'ジェ',t:'チェ',r:'リェ',m:'ミェ',b:'ビェ',p:'ピェ',s:'シェ',j:'ジェ',ch:'チェ',h:'ヒェ',v:'イェ'}},
+          'ㅓ':{kana:{g:'ゴ',k:'コ',n:'ノ',d:'ド',t:'ト',r:'ロ',m:'モ',b:'ボ',p:'ポ',s:'ソ',j:'ジョ',ch:'チョ',h:'ホ',v:'オ'}},
+          'ㅔ':{kana:{g:'ゲ',k:'ケ',n:'ネ',d:'デ',t:'テ',r:'レ',m:'メ',b:'ベ',p:'ペ',s:'セ',j:'ジェ',ch:'チェ',h:'ヘ',v:'エ'}},
+          'ㅕ':{kana:{g:'ギョ',k:'キョ',n:'ニョ',d:'ジョ',t:'チョ',r:'リョ',m:'ミョ',b:'ビョ',p:'ピョ',s:'ショ',j:'ジョ',ch:'チョ',h:'ヒョ',v:'ヨ'}},
+          'ㅖ':{kana:{g:'ギェ',k:'キェ',n:'ニェ',d:'ジェ',t:'チェ',r:'リェ',m:'ミェ',b:'ビェ',p:'ピェ',s:'シェ',j:'ジェ',ch:'チェ',h:'ヒェ',v:'イェ'}},
+          'ㅗ':{kana:{g:'ゴ',k:'コ',n:'ノ',d:'ド',t:'ト',r:'ロ',m:'モ',b:'ボ',p:'ポ',s:'ソ',j:'ジョ',ch:'チョ',h:'ホ',v:'オ'}},
+          'ㅘ':{kana:{g:'グァ',k:'クァ',n:'ヌァ',d:'ドァ',t:'トァ',r:'ルァ',m:'ムァ',b:'ブァ',p:'プァ',s:'スァ',j:'ジュァ',ch:'チュァ',h:'ホァ',v:'ワ'}},
+          'ㅙ':{kana:{g:'グェ',k:'クェ',n:'ヌェ',d:'ドェ',t:'トェ',r:'ルェ',m:'ムェ',b:'ブェ',p:'プェ',s:'スェ',j:'ジュェ',ch:'チュェ',h:'ホェ',v:'ウェ'}},
+          'ㅚ':{kana:{g:'グェ',k:'クェ',n:'ノェ',d:'ドェ',t:'トェ',r:'ロェ',m:'モェ',b:'ボェ',p:'ポェ',s:'ソェ',j:'ジョェ',ch:'チョェ',h:'ホェ',v:'ウェ'}},
+          'ㅛ':{kana:{g:'ギョ',k:'キョ',n:'ニョ',d:'ジョ',t:'チョ',r:'リョ',m:'ミョ',b:'ビョ',p:'ピョ',s:'ショ',j:'ジョ',ch:'チョ',h:'ヒョ',v:'ヨ'}},
+          'ㅜ':{kana:{g:'グ',k:'ク',n:'ヌ',d:'ドゥ',t:'トゥ',r:'ル',m:'ム',b:'ブ',p:'プ',s:'ス',j:'ジュ',ch:'チュ',h:'フ',v:'ウ'}},
+          'ㅝ':{kana:{g:'グォ',k:'クォ',n:'ヌォ',d:'ドォ',t:'トォ',r:'ルォ',m:'ムォ',b:'ブォ',p:'プォ',s:'スォ',j:'ジュォ',ch:'チュォ',h:'ホォ',v:'ウォ'}},
+          'ㅞ':{kana:{g:'グェ',k:'クェ',n:'ヌェ',d:'ドェ',t:'トェ',r:'ルェ',m:'ムェ',b:'ブェ',p:'プェ',s:'スェ',j:'ジュェ',ch:'チュェ',h:'ホェ',v:'ウェ'}},
+          'ㅟ':{kana:{g:'グィ',k:'クィ',n:'ヌィ',d:'ドィ',t:'トィ',r:'ルィ',m:'ムィ',b:'ブィ',p:'プィ',s:'スィ',j:'ジ',ch:'チ',h:'フィ',v:'ウィ'}},
+          'ㅠ':{kana:{g:'ギュ',k:'キュ',n:'ニュ',d:'デュ',t:'テュ',r:'リュ',m:'ミュ',b:'ビュ',p:'ピュ',s:'シュ',j:'ジュ',ch:'チュ',h:'ヒュ',v:'ユ'}},
+          'ㅡ':{kana:{g:'グ',k:'ク',n:'ヌ',d:'ドゥ',t:'トゥ',r:'ル',m:'ム',b:'ブ',p:'プ',s:'ス',j:'ジ',ch:'チュ',h:'フ',v:'ウ'}},
+          'ㅢ':{kana:{g:'グィ',k:'クィ',n:'ヌィ',d:'ドィ',t:'トィ',r:'ルィ',m:'ムィ',b:'ブィ',p:'プィ',s:'スィ',j:'ジ',ch:'チ',h:'フィ',v:'ウィ'}},
+          'ㅣ':{kana:{g:'ギ',k:'キ',n:'ニ',d:'ディ',t:'ティ',r:'リ',m:'ミ',b:'ビ',p:'ピ',s:'シ',j:'ジ',ch:'チ',h:'ヒ',v:'イ'}},
+        };
+        const entry = V2[v];
+        return entry ? (entry.kana[base] || '・') : '・';
+      }
+      function tToKana(t){
+        switch(t){
+          case '': return '';
+          case 'ㄱ': case 'ㄲ': case 'ㅋ': case 'ㄳ': case 'ㄺ': case 'ㅆ': case 'ㅅ': case 'ㅈ': case 'ㅊ': case 'ㅌ': case 'ㅎ': case 'ㄷ': return 'ッ';
+          case 'ㅂ': case 'ㅄ': case 'ㄼ': case 'ㄿ': return 'ッ';
+          case 'ㄴ': case 'ㅇ': return 'ン';
+          case 'ㅁ': return 'ム';
+          case 'ㄹ': return 'ル';
+          default: return '';
+        }
+      }
+      function syllableToKatakana(syll){
+        const parts = decomposeSyllableToJamo(syll);
+        const L = parts[0], V = parts[1], T = parts[2]||'';
+        if(!V) return syll;
+        const row = ROW[L] || ROW['ㅇ'];
+        const kana = cvToKana(row.base, V);
+        const tail = tToKana(T);
+        return (row.gem? 'ッ' : '') + kana + tail;
+      }
+
+      // text -> Katakana RT (with numeric reading)
+      function isDigit(ch){ return ch>='0' && ch<='9'; }
+      const UNIT_KANA = { '년':'ニョン','월':'ウォル','일':'イル','시':'シ','분':'プン','초':'チョ' };
+      function textToKatakanaRT(text){
+        const arr=[...text]; const out=[]; let i=0;
+        while(i<arr.length){
+          const ch = arr[i];
+          if(isHangulSyllable(ch)){
+            let j=i, buf='';
+            while(j<arr.length && isHangulSyllable(arr[j])){ buf += syllableToKatakana(arr[j]); j++; }
+            out.push(buf); i=j; continue;
+          }
+          if(isDigit(ch)){
+            let j=i, num='';
+            while(j<arr.length && isDigit(arr[j])){ num+=arr[j]; j++; }
+            let unitKana='';
+            const p2 = (arr[j]||'') + (arr[j+1]||'');
+            const p1 = (arr[j]||'');
+            if(UNIT_KANA[p2]){ unitKana = UNIT_KANA[p2]; j+=2; }
+            else if(UNIT_KANA[p1]){ unitKana = UNIT_KANA[p1]; j+=1; }
+            const hangNum = numberToHangulSino(num);
+            const kanaNum = [...hangNum].map(c=> isHangulSyllable(c)? syllableToKatakana(c) : c).join('');
+            out.push(kanaNum + unitKana); i=j; continue;
+          }
+          out.push(ch); i++;
+        }
+        return out.join('');
+      }
+
+      function buildRubyFragmentKatakana(text){
+        const frag=document.createDocumentFragment();
+        const arr=[...text]; let i=0;
+        while(i<arr.length){
+          const ch=arr[i];
+          const isNum = (ch>='0' && ch<='9');
+          if(isHangulSyllable(ch) || isNum){
+            let j=i, token='';
+            if(isHangulSyllable(ch)){
+              while(j<arr.length && isHangulSyllable(arr[j])){ token+=arr[j]; j++; }
+            } else { // number token + optional unit
+              while(j<arr.length && (arr[j]>='0' && arr[j]<='9')){ token+=arr[j]; j++; }
+              const p2=(arr[j]||'')+(arr[j+1]||''); const p1=(arr[j]||'');
+              if(UNIT_KANA[p2]){ token+=p2; j+=2; }
+              else if(UNIT_KANA[p1]){ token+=p1; j+=1; }
+            }
+            const ruby=document.createElement('ruby');
+            const rb=document.createElement('rb'); rb.textContent=token; ruby.appendChild(rb);
+            const rt=document.createElement('rt'); rt.textContent=textToKatakanaRT(token); rt.style.fontSize='12px'; rt.style.color='#6b7280'; ruby.appendChild(rt);
+            ruby.style.marginRight='2px'; ruby.className='align-middle';
+            frag.appendChild(ruby); i=j; continue;
+          }
+          frag.appendChild(document.createTextNode(ch)); i++;
+        }
+        return frag;
+      }
+
+      return { composeFromJamoStream, buildRubyFragmentKatakana };
+    })();
+
+    /**
+     * ============================
+     * Virtual Keyboard (두벌식 / ABC / 123)
+     * ============================
+     */
+    const Keyboard = (() => {
+      const BASE = { q:"ㅂ", w:"ㅈ", e:"ㄷ", r:"ㄱ", t:"ㅅ", y:"ㅛ", u:"ㅕ", i:"ㅑ", o:"ㅐ", p:"ㅔ", a:"ㅁ", s:"ㄴ", d:"ㅇ", f:"ㄹ", g:"ㅎ", h:"ㅗ", j:"ㅓ", k:"ㅏ", l:"ㅣ", z:"ㅋ", x:"ㅌ", c:"ㅊ", v:"ㅍ", b:"ㅠ", n:"ㅜ", m:"ㅡ" };
+      const SHIFT = { q:"ㅃ", w:"ㅉ", e:"ㄸ", r:"ㄲ", t:"ㅆ", o:"ㅒ", p:"ㅖ" };
+      const ROWS = [["q","w","e","r","t","y","u","i","o","p"],["a","s","d","f","g","h","j","k","l"],["z","x","c","v","b","n","m","⌫","⎵","↵"]];
+
+      const ABC_ROWS = [["q","w","e","r","t","y","u","i","o","p"],["a","s","d","f","g","h","j","k","l"],["z","x","c","v","b","n","m","⌫","⎵","↵"]];
+      const NUM_ROWS = [["1","2","3","4","5","6","7","8","9","0"],["-","/",":",";","(",")","$","&","@"],[".",",","?","!","'","\"","⌫","⎵","↵"]];
+      return { BASE, SHIFT, ROWS, ABC_ROWS, NUM_ROWS };
+    })();
+
+    /**
+     * ============================
+     * Diff Utility (軽量)
+     * ============================
+     */
+    const Diff = (() => {
+      function diff(a,b){
+        const A=(a||"").normalize("NFC"); const B=(b||"").normalize("NFC");
+        const max=Math.max(A.length,B.length); const nodes=[]; let firstError=null;
+        for(let i=0;i<max;i++){
+          const ca=A[i], cb=B[i]; const span=document.createElement('span');
+          if(ca===cb){ span.className='ok'; span.textContent=cb||''; }
+          else { if(firstError===null) firstError=i; if(cb===undefined){ span.className='ng strike'; span.textContent=ca; } else if(ca===undefined){ span.className='warn'; span.textContent=cb; } else { span.className='warn'; span.style.textDecoration='underline'; span.style.textDecorationColor='#ef4444'; span.textContent=cb; } }
+          nodes.push(span);
+        }
+        return {nodes, firstErrorIndex:firstError};
+      }
+      return { diff };
+    })();
+
+    /**
+     * ============================
+     * Translation Providers (無料系)
+     * ============================
+     */
+    const Providers = (() => {
+      function trimEndSlash(url){ return url.endsWith('/') ? url.slice(0,-1) : url; }
+      async function libreTranslate(baseUrl, apiKey, text, source, target){
+        const payload = { q:text, source:source||"auto", target:target||"ja" };
+        if(apiKey) payload.api_key = apiKey;
+        const r = await fetch(trimEndSlash(String(baseUrl))+"/translate",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+        if(!r.ok) throw new Error("LibreTranslate 呼び出しに失敗しました: "+r.status);
+        const j = await r.json(); return j.translatedText || "";
+      }
+      async function myMemory(text, source, target, email){
+        const url = new URL("https://api.mymemory.translated.net/get");
+        url.searchParams.set("q", text);
+        url.searchParams.set("langpair", (source||"auto")+"|"+(target||"ja"));
+        if(email) url.searchParams.set("de", email);
+        const r = await fetch(url.toString()); if(!r.ok) throw new Error("MyMemory 呼び出しに失敗しました: "+r.status);
+        const j = await r.json(); return (j && j.responseData && j.responseData.translatedText) ? j.responseData.translatedText : "";
+      }
+      return { libreTranslate, myMemory };
+    })();
+
+    // DOM refs
+    const el = {
+      sourceLang: document.getElementById('sourceLang'), targetLang: document.getElementById('targetLang'),
+      sourceText: document.getElementById('sourceText'), translatedText: document.getElementById('translatedText'), translateBtn: document.getElementById('translateBtn'),
+      rubySource: document.getElementById('rubySource'), rubyTranslated: document.getElementById('rubyTranslated'), rubyManual: document.getElementById('rubyManual'),
+      manualText: document.getElementById('manualText'), useVirtualKeyboard: document.getElementById('useVirtualKeyboard'), keyboard: document.getElementById('keyboard'),
+      row1: document.getElementById('row1'), row2: document.getElementById('row2'), row3: document.getElementById('row3'),
+      shiftBtn: document.getElementById('shiftBtn'), diffOut: document.getElementById('diffOut'), firstError: document.getElementById('firstError'),
+      clearManual: document.getElementById('clearManual'), copyManual: document.getElementById('copyManual'),
+      provider: document.getElementById('provider'), cfgLibre: document.getElementById('cfg-libre'), cfgMyMem: document.getElementById('cfg-mymemory'),
+      libreBase: document.getElementById('libreBase'), libreKey: document.getElementById('libreKey'), mmEmail: document.getElementById('mmEmail'),
+      copyPageUrlBtn: document.getElementById('copyPageUrlBtn'),
+      modeHangul: document.getElementById('modeHangul'), modeABC: document.getElementById('modeABC'), mode123: document.getElementById('mode123'),
+    };
+
+    // state
+    let shiftOn=false; let jamoBuffer=""; let kbMode='hangul';
+
+    // init
+    renderKeyboard(); renderAllRubies(); renderDiff();
+
+    // events
+    el.copyPageUrlBtn.addEventListener('click', () => navigator.clipboard.writeText(location.href));
+    el.translateBtn.addEventListener('click', doTranslate);
+    el.sourceText.addEventListener('input', () => { renderAllRubies(); renderDiff(); });
+    el.translatedText.addEventListener('input', () => { renderAllRubies(); renderDiff(); });
+    el.manualText.addEventListener('input', () => { renderAllRubies(); renderDiff(); });
+
+    el.useVirtualKeyboard.addEventListener('change', () => {
+      const useKB=el.useVirtualKeyboard.checked; el.manualText.readOnly=useKB; el.keyboard.style.display=useKB?'':'none';
+      if(!useKB){ el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); }
+      renderAllRubies(); renderDiff();
+    });
+
+    el.shiftBtn.addEventListener('click', () => { shiftOn=!shiftOn; el.shiftBtn.style.background = shiftOn? '#111': '#fff'; el.shiftBtn.style.color = shiftOn? '#fff':'#111'; renderKeyboard(); });
+    el.clearManual.addEventListener('click', () => { jamoBuffer=""; el.manualText.value=""; renderAllRubies(); renderDiff(); });
+    el.copyManual.addEventListener('click', () => navigator.clipboard.writeText(getManualText()));
+
+    el.provider.addEventListener('change', () => { const v=el.provider.value; el.cfgLibre.style.display = v==='libre'?'':'none'; el.cfgMyMem.style.display = v==='mymemory'?'':'none'; });
+
+    el.modeHangul.addEventListener('click', ()=>setMode('hangul'));
+    el.modeABC.addEventListener('click', ()=>setMode('abc'));
+    el.mode123.addEventListener('click', ()=>setMode('num'));
+    function setMode(mode){ kbMode=mode; el.modeHangul.setAttribute('aria-pressed', mode==='hangul'); el.modeABC.setAttribute('aria-pressed', mode==='abc'); el.mode123.setAttribute('aria-pressed', mode==='num'); renderKeyboard(); }
+
+    // keyboard render
+    const KeyboardLayouts = Keyboard;
+    function renderKeyboard(){
+      const rows=[el.row1,el.row2,el.row3]; rows.forEach(r=>r.innerHTML='');
+      let layout;
+      if(kbMode==='hangul') layout = KeyboardLayouts.ROWS;
+      else if(kbMode==='abc') layout = KeyboardLayouts.ABC_ROWS;
+      else layout = KeyboardLayouts.NUM_ROWS;
+      layout.forEach((rowKeys, ri)=>{
+        rowKeys.forEach(k=>{
+          const btn=document.createElement('button'); btn.className='kbd'; btn.type='button';
+          btn.addEventListener('click', ()=>handleKey(k));
+          const main=document.createElement('div'); main.className='main';
+          const sub=document.createElement('div'); sub.className='sub';
+          if(k==='⌫'||k==='⎵'||k==='↵'){ main.textContent=k; }
+          else if(kbMode==='hangul'){
+            const lower=k.toLowerCase(); const base=KeyboardLayouts.BASE[lower]; const sh=KeyboardLayouts.SHIFT[lower]; main.textContent=(shiftOn && sh)? sh: base; sub.textContent=k;
+          } else if(kbMode==='abc'){
+            main.textContent = shiftOn? k.toUpperCase() : k.toLowerCase(); sub.textContent=k;
+          } else { main.textContent = k; }
+          btn.appendChild(main); btn.appendChild(sub); rows[ri].appendChild(btn);
+        });
+      });
+    }
+
+    function handleKey(k){
+      if(k==='⌫'){ if(kbMode==='hangul'){ jamoBuffer=jamoBuffer.slice(0,-1); el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); } else { el.manualText.value = el.manualText.value.slice(0,-1); } renderAllRubies(); renderDiff(); return; }
+      if(k==='⎵'){ if(kbMode==='hangul'){ jamoBuffer+=' '; el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); } else { el.manualText.value += ' '; } renderAllRubies(); renderDiff(); return; }
+      if(k==='↵'){ if(kbMode==='hangul'){ jamoBuffer+='\n'; el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); } else { el.manualText.value += '\n'; } renderAllRubies(); renderDiff(); return; }
+      if(kbMode==='hangul'){
+        const lower=k.toLowerCase(); const base=KeyboardLayouts.BASE[lower]; const sh=KeyboardLayouts.SHIFT[lower]; const jamo=(shiftOn&&sh)? sh: base; if(jamo){ jamoBuffer+=jamo; el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); }
+      } else if(kbMode==='abc'){
+        const ch = shiftOn? k.toUpperCase() : k.toLowerCase(); el.manualText.value += ch;
+      } else { el.manualText.value += k; }
+      renderAllRubies(); renderDiff(); renderKeyboard();
+    }
+
+    // ruby render
+    function renderAllRubies(){
+      el.rubySource.innerHTML=''; el.rubySource.appendChild(Hangul.buildRubyFragmentKatakana(el.sourceText.value));
+      el.rubyTranslated.innerHTML=''; el.rubyTranslated.appendChild(Hangul.buildRubyFragmentKatakana(el.translatedText.value));
+      el.rubyManual.innerHTML=''; el.rubyManual.appendChild(Hangul.buildRubyFragmentKatakana(getManualText()));
+    }
+    function getManualText(){ return el.useVirtualKeyboard.checked ? el.manualText.value : el.manualText.value; }
+
+    // diff render
+    const DiffUtil = Diff;
+    function renderDiff(){
+      const compareTarget = (el.translatedText.value && el.translatedText.value.trim().length>0) ? el.translatedText.value : el.sourceText.value;
+      const res = DiffUtil.diff(compareTarget, getManualText());
+      el.diffOut.innerHTML=''; res.nodes.forEach(n=>el.diffOut.appendChild(n));
+      if(res.firstErrorIndex!==null){ el.firstError.className='small danger'; el.firstError.textContent='最初の誤り位置：'+(res.firstErrorIndex+1)+' 文字目'; }
+      else { el.firstError.className='small success'; el.firstError.textContent='すべて一致しています 🎉'; }
+    }
+
+    // translation call
+    async function doTranslate(){
+      const text=el.sourceText.value||''; if(!text.trim()){ alert('原文が空です'); return; }
+      const src=el.sourceLang.value||'auto'; const tgt=el.targetLang.value||'ja'; const provider=el.provider.value;
+      try{ setBusy(true); let out=''; if(provider==='libre'){ out=await Providers.libreTranslate(el.libreBase.value, el.libreKey.value, text, src, tgt); } else { out=await Providers.myMemory(text, src, tgt, el.mmEmail.value); } el.translatedText.value=out; renderAllRubies(); renderDiff(); }
+      catch(err){ alert(String(err&&err.message||err)); }
+      finally{ setBusy(false); }
+    }
+    function setBusy(b){ el.translateBtn.disabled=b; el.translateBtn.textContent=b?'翻訳中…':'翻訳'; }
+  </script>
+</body>
+</html>

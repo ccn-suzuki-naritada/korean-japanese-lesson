@@ -527,8 +527,14 @@
     el.manualText.addEventListener('input', () => { renderAllRubies(); renderDiff(); });
 
     el.useVirtualKeyboard.addEventListener('change', () => {
-      const useKB=el.useVirtualKeyboard.checked; el.manualText.readOnly=useKB; el.keyboard.style.display=useKB?'':'none';
-      if(!useKB){ el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); }
+      const useKB = el.useVirtualKeyboard.checked;
+      el.manualText.readOnly = useKB;
+      el.keyboard.style.display = useKB ? '' : 'none';
+      if (!useKB) {
+        el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer);
+      } else {
+        jamoBuffer = el.manualText.value;
+      }
       renderAllRubies(); renderDiff();
     });
 
@@ -568,14 +574,15 @@
     }
 
     function handleKey(k){
-      if(k==='⌫'){ if(kbMode==='hangul'){ jamoBuffer=jamoBuffer.slice(0,-1); el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); } else { el.manualText.value = el.manualText.value.slice(0,-1); } renderAllRubies(); renderDiff(); return; }
-      if(k==='⎵'){ if(kbMode==='hangul'){ jamoBuffer+=' '; el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); } else { el.manualText.value += ' '; } renderAllRubies(); renderDiff(); return; }
-      if(k==='↵'){ if(kbMode==='hangul'){ jamoBuffer+='\n'; el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); } else { el.manualText.value += '\n'; } renderAllRubies(); renderDiff(); return; }
+      if(k==='⌫'){ jamoBuffer=jamoBuffer.slice(0,-1); el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); renderAllRubies(); renderDiff(); return; }
+      if(k==='⎵'){ jamoBuffer+=' '; el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); renderAllRubies(); renderDiff(); return; }
+      if(k==='↵'){ jamoBuffer+='\n'; el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); renderAllRubies(); renderDiff(); return; }
       if(kbMode==='hangul'){
-        const lower=k.toLowerCase(); const base=Keyboard.BASE[lower]; const sh=Keyboard.SHIFT[lower]; const jamo=(shiftOn&&sh)? sh: base; if(jamo){ jamoBuffer+=jamo; el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer); }
+        const lower=k.toLowerCase(); const base=Keyboard.BASE[lower]; const sh=Keyboard.SHIFT[lower]; const jamo=(shiftOn&&sh)? sh: base; if(jamo){ jamoBuffer+=jamo; }
       } else if(kbMode==='abc'){
-        const ch = shiftOn? k.toUpperCase() : k.toLowerCase(); el.manualText.value += ch;
-      } else { el.manualText.value += k; }
+        const ch = shiftOn? k.toUpperCase() : k.toLowerCase(); jamoBuffer+=ch;
+      } else { jamoBuffer+=k; }
+      el.manualText.value = Hangul.composeFromJamoStream(jamoBuffer);
       renderAllRubies(); renderDiff(); renderKeyboard();
     }
 
